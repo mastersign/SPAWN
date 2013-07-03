@@ -32,7 +32,7 @@ want to spin up more processes then, lets say, the number of your CPU cores.
 	> spawn.exe file1 file2 file3 file4 file5 file6
 
 The result is SPAWN running `mytool.bat "file1"`, `mytool.bat "file2"`, until
-`file4` in parallel, waits for on of the `mytool.bat` instances to finish 
+`file4` in parallel, waits for one of the `mytool.bat` instances to finish 
 and immediately starts `mytool.bat` with the next waiting file until all
 given files are processed.  
 
@@ -41,3 +41,10 @@ Prerequisites
 
 * Microsoft Windows
 * Microsoft .NET 4.0 or higher
+
+Building spawn.exe
+------------------
+
+* Use Microsoft Visual Studio 2012 to build the `Spawn.sln` solution.
+* Or open a console in the projects root folder and run 
+  `%SystemRoot%\Microsoft.NET\Framework\v4.0.30319\msbuild.exe /p:Configuration=Release Spawn.sln` 
