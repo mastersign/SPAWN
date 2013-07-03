@@ -1,0 +1,5 @@
+/Spawn/bin
+/Spawn/obj
+*.user
+*.suo
+*.cache
