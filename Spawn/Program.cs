@@ -67,7 +67,7 @@ namespace de.mastersign.spawn
         {
             try
             {
-                string.Format(config.ArgumentFormat, "task");
+                var tmp = string.Format(config.ArgumentFormat, "task");
                 return true;
             }
             catch (FormatException e)
@@ -79,12 +79,12 @@ namespace de.mastersign.spawn
 
         static bool InitializeConfiguration()
         {
-            var newConfig = config ?? new Configuration();
-            newConfig.Application = ReadParameter(
-                "Application", newConfig.Application ?? Configuration.DefaultApplication);
-            newConfig.ArgumentFormat = ReadParameter(
-                "Argument Format", newConfig.ArgumentFormat ?? Configuration.DefaultArgumentFormat);
-            newConfig.MaxConcurrency = int.Parse(ReadParameter(
+            config = config ?? new Configuration();
+            config.Application = ReadParameter(
+                "Application", config.Application ?? Configuration.DefaultApplication);
+            config.ArgumentFormat = ReadParameter(
+                "Argument Format", config.ArgumentFormat ?? Configuration.DefaultArgumentFormat);
+            config.MaxConcurrency = int.Parse(ReadParameter(
                 "Max Concurrency", Configuration.DefaultMaxConcurrency.ToString()));
 
             if (!CheckApplication() ||
@@ -93,7 +93,7 @@ namespace de.mastersign.spawn
                 return false;
             }
 
-            newConfig.SaveToFile(ConfigFilePath);
+            config.SaveToFile(ConfigFilePath);
             return true;
         }
 
