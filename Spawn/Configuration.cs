@@ -56,7 +56,7 @@ namespace de.mastersign.spawn
                 var executables = Directory.EnumerateFiles(dir, "*.exe")
                                            .Concat(Directory.EnumerateFiles(dir, "*.bat"))
                                            .Concat(Directory.EnumerateFiles(dir, "*.cmd"))
-                                           .Where(p => p != myPath)
+                                           .Where(p => !myPath.Equals(p, StringComparison.InvariantCultureIgnoreCase))
                                            .OrderBy(p => p);
                 return Path.GetFileName(executables.FirstOrDefault());
             }
