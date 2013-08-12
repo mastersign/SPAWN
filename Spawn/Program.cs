@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -10,19 +11,21 @@ using System.Threading;
 
 namespace de.mastersign.spawn
 {
-    class Program
+    static class Program
     {
-        private static Configuration config;
+        static Configuration config;
+
+        static volatile bool queueComplete;
 
         static int Main(string[] args)
         {
             LoadConfiguration();
-            if (args.Length == 0 || config == null)
+            if (config == null || (!config.TasksFromStandardInput && args.Length == 0))
             {
                 return InitializeConfiguration() ? 0 : -1;
             }
 
-            if (!CheckApplication() || 
+            if (!CheckApplication() ||
                 !CheckArgumentFormat())
             {
                 return -1;
@@ -55,6 +58,7 @@ namespace de.mastersign.spawn
 
         static bool CheckApplication()
         {
+            if (config.FullCommands) return true;
             if (!File.Exists(config.AbsoluteApplicationPath))
             {
                 Console.WriteLine("Could not find application:\n\t" + config.AbsoluteApplicationPath);
@@ -65,6 +69,7 @@ namespace de.mastersign.spawn
 
         static bool CheckArgumentFormat()
         {
+            if (config.FullCommands) return true;
             try
             {
                 var tmp = string.Format(config.ArgumentFormat, "task");
@@ -80,12 +85,14 @@ namespace de.mastersign.spawn
         static bool InitializeConfiguration()
         {
             config = config ?? new Configuration();
+            config.MaxConcurrency = int.Parse(ReadParameter(
+                "Max Concurrency", Configuration.DefaultMaxConcurrency.ToString(CultureInfo.InvariantCulture)), CultureInfo.InvariantCulture);
             config.Application = ReadParameter(
                 "Application", config.Application ?? Configuration.DefaultApplication);
             config.ArgumentFormat = ReadParameter(
                 "Argument Format", config.ArgumentFormat ?? Configuration.DefaultArgumentFormat);
-            config.MaxConcurrency = int.Parse(ReadParameter(
-                "Max Concurrency", Configuration.DefaultMaxConcurrency.ToString()));
+            config.TasksFromStandardInput = bool.Parse(ReadParameter(
+                "Tasks from STDIN", Configuration.DefaultTasksFromStandardInput.ToString(CultureInfo.InvariantCulture)));
 
             if (!CheckApplication() ||
                 !CheckArgumentFormat())
@@ -97,21 +104,31 @@ namespace de.mastersign.spawn
             return true;
         }
 
-        private static ConcurrentQueue<string> tasks;
+        static ConcurrentQueue<string> tasks;
 
-        private static void RunTasks(IList<string> args)
+        static void RunTasks(IList<string> args)
         {
             tasks = new ConcurrentQueue<string>();
-            foreach (var s in args)
+            queueComplete = false;
+
+            if (config.TasksFromStandardInput)
             {
-                tasks.Enqueue(s);
+                new Thread(ReadTasks).Start();
+            }
+            else
+            {
+                foreach (var s in args)
+                {
+                    tasks.Enqueue(s);
+                }
+                queueComplete = true;
             }
 
             Thread[] worker;
-            if (config.MaxConcurrency > 0)
+            if (config.TasksFromStandardInput || config.MaxConcurrency > 0)
             {
                 worker = Enumerable
-                    .Range(0, config.MaxConcurrency)
+                    .Range(0, Math.Max(config.MaxConcurrency, 1))
                     .Select(i => new Thread(() => Worker(i)))
                     .ToArray();
             }
@@ -126,17 +143,21 @@ namespace de.mastersign.spawn
             foreach (var thread in worker) thread.Join();
         }
 
-        private static void Worker(int id)
+        static void Worker(int id)
         {
-            while (tasks.Count > 0)
+            while (tasks.Count > 0 || !queueComplete)
             {
                 string task;
-                if (!tasks.TryDequeue(out task)) continue;
+                if (!tasks.TryDequeue(out task))
+                {
+                    Thread.Sleep(200);
+                    continue;
+                }
                 RunTask(id, task);
             }
         }
 
-        private static void RunTask(int workerId, string task)
+        static void RunTask(int workerId, string task)
         {
             var p = Process.Start(
                 config.AbsoluteApplicationPath,
@@ -146,6 +167,16 @@ namespace de.mastersign.spawn
                 Console.WriteLine("Worker {0} started task:\n\t{1}", workerId, task);
                 p.WaitForExit();
             }
+        }
+
+        static void ReadTasks()
+        {
+            string task;
+            while ((task = Console.ReadLine()) != null)
+            {
+                tasks.Enqueue(task);
+            }
+            queueComplete = true;
         }
     }
 }

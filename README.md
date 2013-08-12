@@ -8,7 +8,7 @@ Usage
 -----
 
 You want to process a number of files with a command line tool of your choice,
-but you don't have the time to process each file after another and but you don't
+but you don't have the time to process each file after another and you don't
 want to spin up more processes then, lets say, the number of your CPU cores.
 
 1. Copy `spawn.exe` in the folder of your command line tool. 
@@ -23,18 +23,29 @@ want to spin up more processes then, lets say, the number of your CPU cores.
 3. Pass all files you want to process as command line arguments to `spawn.exe`,
    e.g. by Drag&Drop the files from the Windows Explorer on `spawn.exe`.
 
-### Example
+### Example with tasks 
 
 	> spawn.exe
+	   Max Concurrency [4]: 3
 	   Application: mytool.bat
 	   Argument Format ["{0}"]: 
-	   Max Concurrency [8]: 4
+       Tasks from STDIN [false]:
 	> spawn.exe file1 file2 file3 file4 file5 file6
+
+### Example 2
+Requires file `files.txt` with one path per line. 
+
+    > spawn.exe
+       Max Concurrency [4]:
+       Application: mytool.bat
+       Argument Format ["{0}"]:
+       Tasks from STDIN [false]: true
+    > spawn.exe < files.txt
 
 The result is SPAWN running `mytool.bat "file1"`, `mytool.bat "file2"`, until
 `file4` in parallel, waits for one of the `mytool.bat` instances to finish 
 and immediately starts `mytool.bat` with the next waiting file until all
-given files are processed.  
+given files are processed.
 
 Prerequisites
 -------------

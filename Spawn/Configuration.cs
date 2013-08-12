@@ -10,11 +10,28 @@ namespace de.mastersign.spawn
 {
     public class Configuration
     {
-        public string Application { get; set; }
-
         public int MaxConcurrency { get; set; }
 
+        public string Application { get; set; }
+
         public string ArgumentFormat { get; set; }
+
+        public bool FullCommands { get; set; }
+
+        public bool TasksFromStandardInput { get; set; }
+
+        private string GetEnvironmentedPath(string relativePath)
+        {
+            var basePaths = new[] { Path.GetDirectoryName(new Uri(Assembly.GetExecutingAssembly().CodeBase).LocalPath) };
+            var commandPaths = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(new[] { Path.PathSeparator });
+            var paths = basePaths.Concat(commandPaths);
+            return (
+                from bp in paths
+                let ap = Path.Combine(bp, relativePath)
+                where File.Exists(ap)
+                select bp
+            ).FirstOrDefault();
+        }
 
         public string AbsoluteApplicationPath
         {
@@ -22,9 +39,7 @@ namespace de.mastersign.spawn
             {
                 return Path.IsPathRooted(Application)
                            ? Application
-                           : Path.Combine(
-                                Path.GetDirectoryName(new Uri(Assembly.GetExecutingAssembly().CodeBase).LocalPath) ?? "", 
-                                Application);
+                           : Path.Combine(GetEnvironmentedPath(Application) ?? "", Application);
             }
         }
 
@@ -47,6 +62,8 @@ namespace de.mastersign.spawn
             }
         }
 
+        public static int DefaultMaxConcurrency { get { return Environment.ProcessorCount; } }
+
         public static string DefaultApplication
         {
             get
@@ -62,8 +79,10 @@ namespace de.mastersign.spawn
             }
         }
 
-        public static int DefaultMaxConcurrency { get { return Environment.ProcessorCount; } }
-
         public static string DefaultArgumentFormat { get { return "\"{0}\""; } }
+
+        public static bool DefaultFullCommands { get { return false; } }
+
+        public static bool DefaultTasksFromStandardInput { get { return false; } }
     }
 }
